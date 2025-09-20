@@ -74,20 +74,19 @@ jobs:
           mode: agent
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
-          # Configure MCP server for Linear integration using local package
+          # Configure MCP server for Linear integration using Bearer token header
           mcp_config: |
             {
               "mcpServers": {
                 "linear": {
-                  "command": "npm",
+                  "command": "npx",
                   "args": [
-                    "run",
-                    "mcp"
-                  ],
-                  "cwd": "${{ github.workspace }}",
-                  "env": {
-                    "LINEAR_API_KEY": "${{ secrets.LINEAR_API_KEY }}"
-                  }
+                    "-y",
+                    "mcp-remote",
+                    "--header",
+                    "Authorization: Bearer ${{ secrets.LINEAR_API_KEY }}",
+                    "https://mcp.linear.app/sse"
+                  ]
                 }
               }
             }
