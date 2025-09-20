@@ -33,6 +33,7 @@
         function TodoApp() {
             const [todos, setTodos] = useState([]);
             const [inputValue, setInputValue] = useState('');
+            const [dueDate, setDueDate] = useState('');
             const [filter, setFilter] = useState('all');
 
             useEffect(() => {
@@ -52,10 +53,12 @@
                         id: Date.now(),
                         text: inputValue,
                         completed: false,
+                        dueDate: dueDate || null,
                         createdAt: new Date().toISOString()
                     };
                     setTodos([...todos, newTodo]);
                     setInputValue('');
+                    setDueDate('');
                 }
             };
 
@@ -73,11 +76,25 @@
                 setTodos(todos.filter(todo => !todo.completed));
             };
 
-            const filteredTodos = todos.filter(todo => {
-                if (filter === 'active') return !todo.completed;
-                if (filter === 'completed') return todo.completed;
-                return true;
-            });
+            const isOverdue = (dueDate) => {
+                if (!dueDate) return false;
+                const today = new Date().setHours(0, 0, 0, 0);
+                const due = new Date(dueDate).setHours(0, 0, 0, 0);
+                return due < today;
+            };
+
+            const filteredTodos = todos
+                .filter(todo => {
+                    if (filter === 'active') return !todo.completed;
+                    if (filter === 'completed') return todo.completed;
+                    return true;
+                })
+                .sort((a, b) => {
+                    if (!a.dueDate && !b.dueDate) return 0;
+                    if (!a.dueDate) return 1;
+                    if (!b.dueDate) return -1;
+                    return new Date(a.dueDate) - new Date(b.dueDate);
+                });
 
             const activeTodoCount = todos.filter(todo => !todo.completed).length;
             const completedTodoCount = todos.filter(todo => todo.completed).length;
@@ -89,7 +106,7 @@
                             Todo App
                         </h1>
 
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 mb-2">
                             <input
                                 type="text"
                                 value={inputValue}
@@ -104,6 +121,18 @@
                             >
                                 Add Todo
                             </button>
+                        </div>
+                        <div className="flex gap-2">
+                            <input
+                                type="date"
+                                value={dueDate}
+                                onChange={(e) => setDueDate(e.target.value)}
+                                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                placeholder="Due date (optional)"
+                            />
+                            <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
+                                Due date (optional)
+                            </span>
                         </div>
                     </div>
 
@@ -162,8 +191,10 @@
                                 filteredTodos.map(todo => (
                                     <div
                                         key={todo.id}
-                                        className={`todo-item flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-all ${
-                                            todo.completed ? 'completed' : ''
+                                        className={`todo-item flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-all ${
+                                            todo.completed ? 'completed bg-gray-50 dark:bg-gray-700' : 
+                                            isOverdue(todo.dueDate) ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' :
+                                            'bg-gray-50 dark:bg-gray-700'
                                         }`}
                                     >
                                         <input
@@ -172,9 +203,23 @@
                                             onChange={() => toggleTodo(todo.id)}
                                             className="w-5 h-5 text-blue-500 rounded focus:ring-blue-500"
                                         />
-                                        <span className="todo-text flex-1 text-gray-900 dark:text-white">
-                                            {todo.text}
-                                        </span>
+                                        <div className="flex-1">
+                                            <span className={`todo-text text-gray-900 dark:text-white block ${
+                                                isOverdue(todo.dueDate) && !todo.completed ? 'text-red-700 dark:text-red-300' : ''
+                                            }`}>
+                                                {todo.text}
+                                            </span>
+                                            {todo.dueDate && (
+                                                <div className={`text-sm mt-1 ${
+                                                    isOverdue(todo.dueDate) && !todo.completed 
+                                                        ? 'text-red-600 dark:text-red-400 font-medium' 
+                                                        : 'text-gray-500 dark:text-gray-400'
+                                                }`}>
+                                                    Due: {new Date(todo.dueDate).toLocaleDateString()}
+                                                    {isOverdue(todo.dueDate) && !todo.completed && ' (Overdue)'}
+                                                </div>
+                                            )}
+                                        </div>
                                         <button
                                             onClick={() => deleteTodo(todo.id)}
                                             className="px-3 py-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors"
