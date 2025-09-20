@@ -2,9 +2,7 @@ name: Claude Linear Ticket Automation
 
 on:
   schedule:
-    # Run daily at 3:00 AM UTC
     - cron: '0 3 * * *'
-  # Allow manual triggering for testing
   workflow_dispatch:
 
 jobs:
@@ -24,20 +22,68 @@ jobs:
           fetch-depth: 0 # Full history needed for branch operations
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, sqlite3, dom, curl, openssl, fileinfo, tokenizer
+          coverage: none
+          tools: composer:v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Copy .env
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Install NPM dependencies and build assets
+        run: |
+          npm ci
+          npm run build:mcp
+          npm run build
+
+      - name: Create database
+        run: |
+          mkdir -p database
+          touch database/database.sqlite
+
+      - name: Run database migrations
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+        run: php artisan migrate --force
+
+      - name: Clear caches
+        run: |
+          php artisan config:clear
+          php artisan route:clear
+          php artisan view:clear
+
       - name: Run Claude Code for Linear Automation
         id: claude
         uses: anthropics/claude-code-action@beta
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
-          # Configure MCP server for Linear integration
+          # Configure MCP server for Linear integration using local package
           mcp_config: |
             {
               "mcpServers": {
                 "linear": {
-                  "command": "npx",
-                  "args": ["-y", "mcp-remote", "https://mcp.linear.app/sse"]
-                }
+                  "command": "npm",
+                  "args": ["run", "mcp"],
+                  "cwd": "${{ github.workspace }}",
+                  "env": {
+                    "LINEAR_API_KEY": "${{ secrets.LINEAR_API_KEY }}"
+                  }
               }
             }
 
@@ -51,6 +97,15 @@ jobs:
           # Custom instructions for the automation task
           custom_instructions: |
             # Linear Ticket Automation Instructions
+
+            ## Environment Context
+            You are running in a fully configured Laravel environment with:
+            - PHP 8.4 with all necessary extensions
+            - Composer dependencies installed
+            - NPM dependencies and built assets
+            - SQLite database configured and migrated
+            - Laravel application key generated
+            - All caches cleared and ready
 
             ## Task Overview
             You are running as an automated GitHub Action to work on Linear tickets. Your goal is to:
@@ -83,8 +138,8 @@ jobs:
 
             ## Code Quality Standards
             - Follow all rules in CLAUDE.md strictly
-            - Run PHP-CS-Fixer before completing
-            - Ensure tests pass
+            - Run Laravel Pint (`vendor/bin/pint`) before completing
+            - Ensure tests pass with `php artisan test`
             - Add tests for new functionality
             - Use existing patterns and conventions
 

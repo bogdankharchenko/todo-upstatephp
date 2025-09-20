@@ -3,8 +3,11 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "vite build",
-        "dev": "vite"
+        "build": "vite build && npm run build:mcp",
+        "build:mcp": "cd node_modules/linear-mcp && npm install --production=false && (npm run build || true) && chmod +x build/index.js",
+        "postinstall": "npm run build:mcp || echo 'MCP build failed, continuing...'",
+        "dev": "vite",
+        "mcp": "node node_modules/linear-mcp/build/index.js"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",
@@ -13,5 +16,8 @@
         "laravel-vite-plugin": "^2.0.0",
         "tailwindcss": "^4.0.0",
         "vite": "^7.0.4"
+    },
+    "dependencies": {
+        "linear-mcp": "github:cline/linear-mcp"
     }
 }
