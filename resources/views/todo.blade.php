@@ -33,6 +33,7 @@
         function TodoApp() {
             const [todos, setTodos] = useState([]);
             const [inputValue, setInputValue] = useState('');
+            const [dueDate, setDueDate] = useState('');
             const [filter, setFilter] = useState('all');
 
             useEffect(() => {
@@ -52,10 +53,12 @@
                         id: Date.now(),
                         text: inputValue,
                         completed: false,
-                        createdAt: new Date().toISOString()
+                        createdAt: new Date().toISOString(),
+                        dueDate: dueDate || null
                     };
                     setTodos([...todos, newTodo]);
                     setInputValue('');
+                    setDueDate('');
                 }
             };
 
@@ -73,10 +76,30 @@
                 setTodos(todos.filter(todo => !todo.completed));
             };
 
+            const isOverdue = (todo) => {
+                if (!todo.dueDate || todo.completed) return false;
+                const today = new Date();
+                const due = new Date(todo.dueDate);
+                today.setHours(0, 0, 0, 0);
+                due.setHours(0, 0, 0, 0);
+                return due < today;
+            };
+
+            const formatDate = (dateString) => {
+                if (!dateString) return '';
+                const date = new Date(dateString);
+                return date.toLocaleDateString();
+            };
+
             const filteredTodos = todos.filter(todo => {
                 if (filter === 'active') return !todo.completed;
                 if (filter === 'completed') return todo.completed;
                 return true;
+            }).sort((a, b) => {
+                if (!a.dueDate && !b.dueDate) return 0;
+                if (!a.dueDate) return 1;
+                if (!b.dueDate) return -1;
+                return new Date(a.dueDate) - new Date(b.dueDate);
             });
 
             const activeTodoCount = todos.filter(todo => !todo.completed).length;
@@ -89,21 +112,32 @@
                             Todo App
                         </h1>
 
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                value={inputValue}
-                                onChange={(e) => setInputValue(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && addTodo()}
-                                placeholder="What needs to be done?"
-                                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                            />
-                            <button
-                                onClick={addTodo}
-                                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-                            >
-                                Add Todo
-                            </button>
+                        <div className="space-y-3">
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={inputValue}
+                                    onChange={(e) => setInputValue(e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && addTodo()}
+                                    placeholder="What needs to be done?"
+                                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                />
+                                <button
+                                    onClick={addTodo}
+                                    className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                                >
+                                    Add Todo
+                                </button>
+                            </div>
+                            <div className="flex gap-2 items-center">
+                                <label className="text-sm text-gray-600 dark:text-gray-400">Due date (optional):</label>
+                                <input
+                                    type="date"
+                                    value={dueDate}
+                                    onChange={(e) => setDueDate(e.target.value)}
+                                    className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                                />
+                            </div>
                         </div>
                     </div>
 
@@ -162,25 +196,47 @@
                                 filteredTodos.map(todo => (
                                     <div
                                         key={todo.id}
-                                        className={`todo-item flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-all ${
-                                            todo.completed ? 'completed' : ''
+                                        className={`todo-item p-3 rounded-lg transition-all ${
+                                            todo.completed 
+                                                ? 'completed bg-gray-50 dark:bg-gray-700' 
+                                                : isOverdue(todo)
+                                                    ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+                                                    : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
                                         }`}
                                     >
-                                        <input
-                                            type="checkbox"
-                                            checked={todo.completed}
-                                            onChange={() => toggleTodo(todo.id)}
-                                            className="w-5 h-5 text-blue-500 rounded focus:ring-blue-500"
-                                        />
-                                        <span className="todo-text flex-1 text-gray-900 dark:text-white">
-                                            {todo.text}
-                                        </span>
-                                        <button
-                                            onClick={() => deleteTodo(todo.id)}
-                                            className="px-3 py-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors"
-                                        >
-                                            Delete
-                                        </button>
+                                        <div className="flex items-center gap-3">
+                                            <input
+                                                type="checkbox"
+                                                checked={todo.completed}
+                                                onChange={() => toggleTodo(todo.id)}
+                                                className="w-5 h-5 text-blue-500 rounded focus:ring-blue-500"
+                                            />
+                                            <div className="flex-1">
+                                                <span className={`todo-text block ${
+                                                    isOverdue(todo) 
+                                                        ? 'text-red-700 dark:text-red-300 font-medium' 
+                                                        : 'text-gray-900 dark:text-white'
+                                                }`}>
+                                                    {todo.text}
+                                                </span>
+                                                {todo.dueDate && (
+                                                    <div className={`text-xs mt-1 ${
+                                                        isOverdue(todo)
+                                                            ? 'text-red-600 dark:text-red-400 font-medium'
+                                                            : 'text-gray-500 dark:text-gray-400'
+                                                    }`}>
+                                                        Due: {formatDate(todo.dueDate)}
+                                                        {isOverdue(todo) && ' (Overdue)'}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <button
+                                                onClick={() => deleteTodo(todo.id)}
+                                                className="px-3 py-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors"
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
                                     </div>
                                 ))
                             )}
