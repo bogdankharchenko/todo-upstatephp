@@ -97,7 +97,7 @@ jobs:
             LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
 
           # Allow all tools for the automation
-          # Not specifying allowed_tools gives Claude access to all available tools
+          allowed_tools: "*"
 
           # Custom instructions for the automation task
           direct_prompt: |
