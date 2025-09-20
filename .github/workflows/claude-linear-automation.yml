@@ -1,0 +1,100 @@
+name: Claude Linear Ticket Automation
+
+on:
+  schedule:
+    # Run daily at 3:00 AM UTC
+    - cron: '0 3 * * *'
+  # Allow manual triggering for testing
+  workflow_dispatch:
+
+jobs:
+  automate-linear-tickets:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history needed for branch operations
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Claude Code for Linear Automation
+        id: claude
+        uses: anthropics/claude-code-action@beta
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+          # Configure MCP server for Linear integration
+          mcp_config: |
+            {
+              "mcpServers": {
+                "linear": {
+                  "command": "npx",
+                  "args": ["-y", "mcp-remote", "https://mcp.linear.app/sse"]
+                }
+              }
+            }
+
+          # Pass Linear API key as environment variable
+          claude_env: |
+            LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+
+          # Allow all tools for the automation
+          # Not specifying allowed_tools gives Claude access to all available tools
+
+          # Custom instructions for the automation task
+          custom_instructions: |
+            # Linear Ticket Automation Instructions
+
+            ## Task Overview
+            You are running as an automated GitHub Action to work on Linear tickets. Your goal is to:
+            1. Find 1 well-defined ticket in Linear with "Backlog" status
+            2. Create a branch and implement the feature
+            3. Ensure code quality through review
+            4. Create a PR for human review
+
+            ## Specific Requirements
+
+            ### Ticket Selection
+            - Find exactly 1 ticket in Linear with status "Ready"
+            - Ticket must be 1-2 points in complexity
+            - Must have clear, well-defined scope of work
+            - Use Linear branch name as the git branch name
+
+            ### Engineering Workflow
+            1. Create a detailed plan of work for the ticket
+            2. Implement the solution following project conventions in CLAUDE.md
+            3. Run code quality checks and tests
+            4. Use the @agent-code-quality-analyst agent to review your work
+            5. Iterate if quality issues are found
+
+            ### Pull Request Creation
+            - Push changes to a new branch
+            - Create PR with descriptive title and body
+            - Add "claude" label to the PR
+            - Assign reviewers: @bogdankharchenko
+            - Reference the Linear ticket in PR description
+
+            ## Code Quality Standards
+            - Follow all rules in CLAUDE.md strictly
+            - Run PHP-CS-Fixer before completing
+            - Ensure tests pass
+            - Add tests for new functionality
+            - Use existing patterns and conventions
+
+            ## Error Handling
+            - If no suitable tickets found, create an issue explaining why
+            - If implementation fails, document the issue and create a draft PR
+            - Always provide detailed commit messages and PR descriptions
+
+            ## Important Notes
+            - This runs automatically - be thorough but autonomous
+            - Don't ask for clarification - make reasonable decisions
+            - Follow the existing codebase patterns exactly
+            - Prioritize code quality over speed
