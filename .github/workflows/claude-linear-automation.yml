@@ -71,6 +71,7 @@ jobs:
         id: claude
         uses: anthropics/claude-code-action@beta
         with:
+          mode: agent
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
           # Configure MCP server for Linear integration using local package
@@ -95,7 +96,7 @@ jobs:
           # Not specifying allowed_tools gives Claude access to all available tools
 
           # Custom instructions for the automation task
-          custom_instructions: |
+          direct_prompt: |
             # Linear Ticket Automation Instructions
 
             ## Environment Context
