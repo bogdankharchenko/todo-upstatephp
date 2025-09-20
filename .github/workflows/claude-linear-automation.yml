@@ -80,11 +80,15 @@ jobs:
               "mcpServers": {
                 "linear": {
                   "command": "npm",
-                  "args": ["run", "mcp"],
+                  "args": [
+                    "run",
+                    "mcp"
+                  ],
                   "cwd": "${{ github.workspace }}",
                   "env": {
                     "LINEAR_API_KEY": "${{ secrets.LINEAR_API_KEY }}"
                   }
+                }
               }
             }
 
