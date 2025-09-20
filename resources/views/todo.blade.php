@@ -73,6 +73,48 @@
                 setTodos(todos.filter(todo => !todo.completed));
             };
 
+            const exportToMarkdown = () => {
+                const activeTodos = todos.filter(todo => !todo.completed);
+                const completedTodos = todos.filter(todo => todo.completed);
+                
+                let markdown = '';
+                
+                if (activeTodos.length > 0) {
+                    markdown += '# Active Todos\n\n';
+                    activeTodos.forEach(todo => {
+                        markdown += `- [ ] ${todo.text}\n`;
+                    });
+                    markdown += '\n';
+                }
+                
+                if (completedTodos.length > 0) {
+                    markdown += '# Completed Todos\n\n';
+                    completedTodos.forEach(todo => {
+                        markdown += `- [x] ${todo.text}\n`;
+                    });
+                }
+                
+                if (markdown === '') {
+                    markdown = '# Todos\n\nNo todos yet!';
+                }
+                
+                // Copy to clipboard
+                navigator.clipboard.writeText(markdown).then(() => {
+                    // Simple toast notification
+                    const toast = document.createElement('div');
+                    toast.textContent = 'Markdown copied to clipboard!';
+                    toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+                    document.body.appendChild(toast);
+                    
+                    setTimeout(() => {
+                        document.body.removeChild(toast);
+                    }, 3000);
+                }).catch(() => {
+                    // Fallback for older browsers
+                    alert('Markdown exported:\n\n' + markdown);
+                });
+            };
+
             const filteredTodos = todos.filter(todo => {
                 if (filter === 'active') return !todo.completed;
                 if (filter === 'completed') return todo.completed;
@@ -138,6 +180,13 @@
                                 }`}
                             >
                                 Completed ({completedTodoCount})
+                            </button>
+                            <button
+                                onClick={exportToMarkdown}
+                                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                                title="Export todos as Markdown"
+                            >
+                                Export as Markdown
                             </button>
                             {completedTodoCount > 0 && (
                                 <button
