@@ -99,6 +99,12 @@ jobs:
           # Allow all tools for the automation
           allowed_tools: |
             Bash(*),
+            Bash(git:*),
+            Bash(gh:*),
+            Bash(php:*),
+            Bash(composer:*),
+            Bash(npm:*),
+            Bash(vendor/bin/*),
             Read,
             Write,
             Edit,
@@ -158,58 +164,60 @@ jobs:
           direct_prompt: |
             # Linear Ticket Automation Instructions
 
-            ## Environment Context
-            You are running in a fully configured Laravel environment with:
-            - PHP 8.4 with all necessary extensions
-            - Composer dependencies installed
-            - NPM dependencies and built assets
-            - SQLite database configured and migrated
-            - Laravel application key generated
-            - All caches cleared and ready
+            ## CRITICAL: Your Single Task
+            You are an automated GitHub Action agent. Your ONLY job is to:
+            1. Find ONE ticket in Linear with "Backlog" or "Todo" status
+            2. Move it to "In Progress" status immediately
+            3. Implement the feature described in that ticket
+            4. Create a pull request
+            5. Move the ticket to appropriate status when done
 
-            ## Task Overview
-            You are running as an automated GitHub Action to work on Linear tickets. Your goal is to:
-            1. Find 1 well-defined ticket in Linear with "Backlog" status
-            2. Create a branch and implement the feature
-            3. Ensure code quality through review
-            4. Create a PR for human review
+            ## Step-by-Step Workflow (FOLLOW EXACTLY)
 
-            ## Specific Requirements
+            ### Step 1: Find ONE Ticket
+            - Search for tickets with status "Backlog" or "Todo"
+            - Select ONE ticket that is 1-2 points in complexity
+            - STOP if no suitable tickets exist - do not proceed
 
-            ### Ticket Selection
-            - Find exactly 1 ticket in Linear with status "Ready"
-            - Ticket must be 1-2 points in complexity
-            - Must have clear, well-defined scope of work
-            - Use Linear branch name as the git branch name
+            ### Step 2: Update Linear Status
+            - IMMEDIATELY move the selected ticket to "In Progress" status
+            - This shows the ticket is being worked on
 
-            ### Engineering Workflow
-            1. Create a detailed plan of work for the ticket
-            2. Implement the solution following project conventions in CLAUDE.md
-            3. Run code quality checks and tests
-            4. Use the @agent-code-quality-analyst agent to review your work
-            5. Iterate if quality issues are found
+            ### Step 3: Create Branch
+            - Create a new git branch with format: feature/TOD-X-brief-description
+            - Switch to this branch
 
-            ### Pull Request Creation
-            - Push changes to a new branch
-            - Create PR with descriptive title and body
-            - Add "claude" label to the PR
-            - Assign reviewers: @bogdankharchenko
-            - Reference the Linear ticket in PR description
+            ### Step 4: Implement the Feature
+            - Read the ticket requirements carefully
+            - Implement EXACTLY what the ticket asks for
+            - Do not add extra features or improvements
+            - Follow existing code patterns in the codebase
 
-            ## Code Quality Standards
-            - Follow all rules in CLAUDE.md strictly
-            - Run Laravel Pint (`vendor/bin/pint`) before completing
-            - Ensure tests pass with `php artisan test`
-            - Add tests for new functionality
-            - Use existing patterns and conventions
+            ### Step 5: Create Pull Request
+            - Commit all changes with clear message
+            - Push the branch
+            - Create PR with title: "Implement [Ticket Title] (TOD-X)"
+            - In PR body, include:
+              - Summary of changes
+              - Link to Linear ticket
+              - "Closes TOD-X"
 
-            ## Error Handling
-            - If no suitable tickets found, create an issue explaining why
-            - If implementation fails, document the issue and create a draft PR
-            - Always provide detailed commit messages and PR descriptions
+            ## DO NOT:
+            - Work on multiple tickets
+            - Format or refactor unrelated code
+            - Run extensive linting on unchanged files
+            - Add features not requested in the ticket
+            - Create documentation unless the ticket specifically asks for it
 
-            ## Important Notes
-            - This runs automatically - be thorough but autonomous
-            - Don't ask for clarification - make reasonable decisions
-            - Follow the existing codebase patterns exactly
-            - Prioritize code quality over speed
+            ## FOCUS ON:
+            - Completing exactly what the ticket asks for
+            - Using existing patterns in the codebase
+            - Making the minimal necessary changes
+            - Getting the PR created successfully
+
+            ## If Something Fails:
+            - If no tickets available: Exit gracefully
+            - If implementation blocked: Create draft PR with explanation
+            - If PR creation fails: Document the error
+
+            Remember: You are working autonomously. Make decisions and proceed. Do not ask for clarification.
