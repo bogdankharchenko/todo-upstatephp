@@ -34,6 +34,7 @@
             const [todos, setTodos] = useState([]);
             const [inputValue, setInputValue] = useState('');
             const [filter, setFilter] = useState('all');
+            const [toastMessage, setToastMessage] = useState('');
 
             useEffect(() => {
                 const savedTodos = localStorage.getItem('todos');
@@ -71,6 +72,47 @@
 
             const clearCompleted = () => {
                 setTodos(todos.filter(todo => !todo.completed));
+            };
+
+            const exportAsMarkdown = () => {
+                const activeTodos = todos.filter(todo => !todo.completed);
+                const completedTodos = todos.filter(todo => todo.completed);
+                
+                let markdown = '# My Todo List\n\n';
+                
+                if (activeTodos.length > 0) {
+                    markdown += '## Active\n\n';
+                    activeTodos.forEach(todo => {
+                        markdown += `- [ ] ${todo.text}\n`;
+                    });
+                    markdown += '\n';
+                }
+                
+                if (completedTodos.length > 0) {
+                    markdown += '## Completed\n\n';
+                    completedTodos.forEach(todo => {
+                        markdown += `- [x] ${todo.text}\n`;
+                    });
+                    markdown += '\n';
+                }
+                
+                if (activeTodos.length === 0 && completedTodos.length === 0) {
+                    markdown += 'No todos yet.\n';
+                }
+                
+                return markdown;
+            };
+
+            const copyToClipboard = async () => {
+                try {
+                    const markdown = exportAsMarkdown();
+                    await navigator.clipboard.writeText(markdown);
+                    setToastMessage('Todos exported to clipboard!');
+                    setTimeout(() => setToastMessage(''), 3000);
+                } catch (err) {
+                    setToastMessage('Failed to copy to clipboard');
+                    setTimeout(() => setToastMessage(''), 3000);
+                }
             };
 
             const filteredTodos = todos.filter(todo => {
@@ -139,10 +181,17 @@
                             >
                                 Completed ({completedTodoCount})
                             </button>
+                            <button
+                                onClick={copyToClipboard}
+                                disabled={todos.length === 0}
+                                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                            >
+                                Export as Markdown
+                            </button>
                             {completedTodoCount > 0 && (
                                 <button
                                     onClick={clearCompleted}
-                                    className="ml-auto px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
                                 >
                                     Clear Completed
                                 </button>
@@ -190,6 +239,12 @@
                     <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 text-center text-sm text-gray-500 dark:text-gray-400">
                         <p>{activeTodoCount} item{activeTodoCount !== 1 ? 's' : ''} left</p>
                     </div>
+
+                    {toastMessage && (
+                        <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out">
+                            {toastMessage}
+                        </div>
+                    )}
                 </div>
             );
         }
