@@ -75,6 +75,12 @@
 					Completed (<span x-text="completedTodoCount"></span>)
 				</button>
 				<button
+						@click="exportAsMarkdown()"
+						class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+				>
+					Export as Markdown
+				</button>
+				<button
 						x-show="completedTodoCount > 0"
 						@click="clearCompleted()"
 						class="ml-auto px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
@@ -117,6 +123,11 @@
 				<span x-text="activeTodoCount"></span> item<span x-text="activeTodoCount !== 1 ? 's' : ''"></span> left
 			</p>
 		</div>
+		
+		<!-- Toast notification -->
+		<div x-show="showToast" x-transition.opacity class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50">
+			<span x-text="toastMessage"></span>
+		</div>
 	</div>
 </div>
 
@@ -126,6 +137,8 @@ function todoApp() {
 		todos: [],
 		inputValue: '',
 		filter: 'all',
+		showToast: false,
+		toastMessage: '',
 		
 		init() {
 			const savedTodos = localStorage.getItem('todos');
@@ -188,6 +201,48 @@ function todoApp() {
 		
 		saveTodos() {
 			localStorage.setItem('todos', JSON.stringify(this.todos));
+		},
+		
+		exportAsMarkdown() {
+			if (this.todos.length === 0) {
+				this.showToastNotification('No todos to export!');
+				return;
+			}
+
+			const activeTodos = this.todos.filter(todo => !todo.completed);
+			const completedTodos = this.todos.filter(todo => todo.completed);
+			
+			let markdown = '# My Todos\n\n';
+			
+			if (activeTodos.length > 0) {
+				markdown += '## Active\n\n';
+				activeTodos.forEach(todo => {
+					markdown += `- [ ] ${todo.text}\n`;
+				});
+				markdown += '\n';
+			}
+			
+			if (completedTodos.length > 0) {
+				markdown += '## Completed\n\n';
+				completedTodos.forEach(todo => {
+					markdown += `- [x] ${todo.text}\n`;
+				});
+			}
+			
+			// Copy to clipboard
+			navigator.clipboard.writeText(markdown).then(() => {
+				this.showToastNotification('Todos exported to clipboard!');
+			}).catch(() => {
+				this.showToastNotification('Failed to copy to clipboard');
+			});
+		},
+		
+		showToastNotification(message) {
+			this.toastMessage = message;
+			this.showToast = true;
+			setTimeout(() => {
+				this.showToast = false;
+			}, 3000);
 		}
 	}
 }
