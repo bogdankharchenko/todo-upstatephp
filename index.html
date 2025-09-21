@@ -75,6 +75,12 @@
 					Completed (<span x-text="completedTodoCount"></span>)
 				</button>
 				<button
+						@click="exportAsMarkdown()"
+						class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+				>
+					Export as Markdown
+				</button>
+				<button
 						x-show="completedTodoCount > 0"
 						@click="clearCompleted()"
 						class="ml-auto px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
@@ -118,6 +124,19 @@
 			</p>
 		</div>
 	</div>
+	
+	<!-- Toast Notification -->
+	<div
+		x-show="showToast"
+		x-transition:enter="transition ease-out duration-300"
+		x-transition:enter-start="opacity-0 translate-y-2"
+		x-transition:enter-end="opacity-100 translate-y-0"
+		x-transition:leave="transition ease-in duration-200"
+		x-transition:leave-start="opacity-100 translate-y-0"
+		x-transition:leave-end="opacity-0 translate-y-2"
+		class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50"
+		x-text="toastMessage"
+	></div>
 </div>
 
 <script>
@@ -126,6 +145,8 @@ function todoApp() {
 		todos: [],
 		inputValue: '',
 		filter: 'all',
+		showToast: false,
+		toastMessage: '',
 		
 		init() {
 			const savedTodos = localStorage.getItem('todos');
@@ -188,6 +209,63 @@ function todoApp() {
 		
 		saveTodos() {
 			localStorage.setItem('todos', JSON.stringify(this.todos));
+		},
+		
+		exportAsMarkdown() {
+			if (this.todos.length === 0) {
+				this.showToastNotification('No todos to export');
+				return;
+			}
+			
+			const activeTodos = this.todos.filter(todo => !todo.completed);
+			const completedTodos = this.todos.filter(todo => todo.completed);
+			
+			let markdown = '# Todo List\n\n';
+			
+			if (activeTodos.length > 0) {
+				markdown += '## Active\n\n';
+				activeTodos.forEach(todo => {
+					markdown += `- [ ] ${todo.text}\n`;
+				});
+				markdown += '\n';
+			}
+			
+			if (completedTodos.length > 0) {
+				markdown += '## Completed\n\n';
+				completedTodos.forEach(todo => {
+					markdown += `- [x] ${todo.text}\n`;
+				});
+			}
+			
+			// Copy to clipboard
+			navigator.clipboard.writeText(markdown).then(() => {
+				this.showToastNotification('Exported to clipboard successfully!');
+			}).catch(() => {
+				// Fallback for older browsers
+				this.fallbackCopyToClipboard(markdown);
+			});
+		},
+		
+		fallbackCopyToClipboard(text) {
+			const textArea = document.createElement('textarea');
+			textArea.value = text;
+			document.body.appendChild(textArea);
+			textArea.select();
+			try {
+				document.execCommand('copy');
+				this.showToastNotification('Exported to clipboard successfully!');
+			} catch (err) {
+				this.showToastNotification('Failed to copy to clipboard');
+			}
+			document.body.removeChild(textArea);
+		},
+		
+		showToastNotification(message) {
+			this.toastMessage = message;
+			this.showToast = true;
+			setTimeout(() => {
+				this.showToast = false;
+			}, 3000);
 		}
 	}
 }
