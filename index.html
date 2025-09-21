@@ -24,15 +24,33 @@
 	.todo-item.completed .todo-text {
 		text-decoration: line-through;
 	}
+
+	.theme-transition {
+		transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+	}
 	</style>
 </head>
-<body class="antialiased bg-gray-50 dark:bg-gray-900">
+<body class="antialiased bg-gray-50 dark:bg-gray-900 theme-transition">
 <div class="min-h-screen flex items-center justify-center p-4">
-	<div x-data="todoApp()" class="w-full max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-xl">
+	<div x-data="todoApp()" class="w-full max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-xl theme-transition">
 		<div class="p-6 border-b border-gray-200 dark:border-gray-700">
-			<h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-6 text-center">
-				Todo App
-			</h1>
+			<div class="flex justify-between items-center mb-6">
+				<h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+					Todo App
+				</h1>
+				<button
+					@click="toggleTheme()"
+					class="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 theme-transition"
+					:title="isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'"
+				>
+					<svg x-show="!isDarkMode" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+						<path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
+					</svg>
+					<svg x-show="isDarkMode" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+						<path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"></path>
+					</svg>
+				</button>
+			</div>
 			
 			<div class="flex gap-2">
 				<input
@@ -40,7 +58,7 @@
 						x-model="inputValue"
 						@keydown.enter="addTodo()"
 						placeholder="What needs to be done?"
-						class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+						class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white theme-transition"
 				/>
 				<button
 						@click="addTodo()"
@@ -56,21 +74,21 @@
 				<button
 						@click="filter = 'all'"
 						:class="filter === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'"
-						class="px-4 py-2 rounded-lg transition-colors"
+						class="px-4 py-2 rounded-lg transition-colors theme-transition"
 				>
 					All (<span x-text="todos.length"></span>)
 				</button>
 				<button
 						@click="filter = 'active'"
 						:class="filter === 'active' ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'"
-						class="px-4 py-2 rounded-lg transition-colors"
+						class="px-4 py-2 rounded-lg transition-colors theme-transition"
 				>
 					Active (<span x-text="activeTodoCount"></span>)
 				</button>
 				<button
 						@click="filter = 'completed'"
 						:class="filter === 'completed' ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'"
-						class="px-4 py-2 rounded-lg transition-colors"
+						class="px-4 py-2 rounded-lg transition-colors theme-transition"
 				>
 					Completed (<span x-text="completedTodoCount"></span>)
 				</button>
@@ -91,7 +109,7 @@
 				</template>
 				<template x-for="todo in filteredTodos" :key="todo.id">
 					<div
-							class="todo-item flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-all"
+							class="todo-item flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-all theme-transition"
 							:class="todo.completed ? 'completed' : ''"
 					>
 						<input
@@ -126,12 +144,23 @@ function todoApp() {
 		todos: [],
 		inputValue: '',
 		filter: 'all',
+		isDarkMode: false,
 		
 		init() {
 			const savedTodos = localStorage.getItem('todos');
 			if (savedTodos) {
 				this.todos = JSON.parse(savedTodos);
 			}
+			
+			// Initialize theme based on saved preference or system preference
+			const savedTheme = localStorage.getItem('theme');
+			if (savedTheme) {
+				this.isDarkMode = savedTheme === 'dark';
+			} else {
+				// Detect system preference
+				this.isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+			}
+			this.applyTheme();
 		},
 		
 		get filteredTodos() {
@@ -188,6 +217,20 @@ function todoApp() {
 		
 		saveTodos() {
 			localStorage.setItem('todos', JSON.stringify(this.todos));
+		},
+		
+		toggleTheme() {
+			this.isDarkMode = !this.isDarkMode;
+			this.applyTheme();
+			localStorage.setItem('theme', this.isDarkMode ? 'dark' : 'light');
+		},
+		
+		applyTheme() {
+			if (this.isDarkMode) {
+				document.documentElement.classList.add('dark');
+			} else {
+				document.documentElement.classList.remove('dark');
+			}
 		}
 	}
 }
