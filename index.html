@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Todo App - Alpine.js</title>
+
+    @vite(['resources/css/app.css'])
+
+    <!-- Alpine.js CDN -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <style>
+        .todo-item {
+            transition: all 0.3s ease;
+        }
+        .todo-item.completed {
+            opacity: 0.6;
+        }
+        .todo-item.completed .todo-text {
+            text-decoration: line-through;
+        }
+    </style>
+</head>
+<body class="antialiased bg-gray-50 dark:bg-gray-900">
+    <div class="min-h-screen flex items-center justify-center p-4">
+        <div x-data="todoApp()" class="w-full max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-xl">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-6 text-center">
+                    Todo App
+                </h1>
+
+                <div class="flex gap-2">
+                    <input
+                        type="text"
+                        x-model="inputValue"
+                        @keydown.enter="addTodo()"
+                        placeholder="What needs to be done?"
+                        class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                    <button
+                        @click="addTodo()"
+                        class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                    >
+                        Add Todo
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-6">
+                <div class="flex gap-2 mb-4">
+                    <button
+                        @click="filter = 'all'"
+                        :class="filter === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'"
+                        class="px-4 py-2 rounded-lg transition-colors"
+                    >
+                        All (<span x-text="todos.length"></span>)
+                    </button>
+                    <button
+                        @click="filter = 'active'"
+                        :class="filter === 'active' ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'"
+                        class="px-4 py-2 rounded-lg transition-colors"
+                    >
+                        Active (<span x-text="activeTodoCount"></span>)
+                    </button>
+                    <button
+                        @click="filter = 'completed'"
+                        :class="filter === 'completed' ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'"
+                        class="px-4 py-2 rounded-lg transition-colors"
+                    >
+                        Completed (<span x-text="completedTodoCount"></span>)
+                    </button>
+                    <button
+                        x-show="completedTodoCount > 0"
+                        @click="clearCompleted()"
+                        class="ml-auto px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                    >
+                        Clear Completed
+                    </button>
+                </div>
+
+                <div class="space-y-2 max-h-96 overflow-y-auto">
+                    <template x-if="filteredTodos.length === 0">
+                        <p class="text-center text-gray-500 dark:text-gray-400 py-8">
+                            <span x-text="filter === 'completed' ? 'No completed todos' : filter === 'active' ? 'No active todos' : 'No todos yet. Add one above!'"></span>
+                        </p>
+                    </template>
+                    <template x-for="todo in filteredTodos" :key="todo.id">
+                        <div
+                            class="todo-item flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-all"
+                            :class="todo.completed ? 'completed' : ''"
+                        >
+                            <input
+                                type="checkbox"
+                                :checked="todo.completed"
+                                @change="toggleTodo(todo.id)"
+                                class="w-5 h-5 text-blue-500 rounded focus:ring-blue-500"
+                            />
+                            <span class="todo-text flex-1 text-gray-900 dark:text-white" x-text="todo.text"></span>
+                            <button
+                                @click="deleteTodo(todo.id)"
+                                class="px-3 py-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 text-center text-sm text-gray-500 dark:text-gray-400">
+                <p>
+                    <span x-text="activeTodoCount"></span> item<span x-text="activeTodoCount !== 1 ? 's' : ''"></span> left
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function todoApp() {
+            return {
+                todos: [],
+                inputValue: '',
+                filter: 'all',
+
+                init() {
+                    const savedTodos = localStorage.getItem('todos');
+                    if (savedTodos) {
+                        this.todos = JSON.parse(savedTodos);
+                    }
+                },
+
+                get filteredTodos() {
+                    return this.todos.filter(todo => {
+                        if (this.filter === 'active') return !todo.completed;
+                        if (this.filter === 'completed') return todo.completed;
+                        return true;
+                    });
+                },
+
+                get activeTodoCount() {
+                    return this.todos.filter(todo => !todo.completed).length;
+                },
+
+                get completedTodoCount() {
+                    return this.todos.filter(todo => todo.completed).length;
+                },
+
+                addTodo() {
+                    if (this.inputValue.trim()) {
+                        const newTodo = {
+                            id: Date.now(),
+                            text: this.inputValue,
+                            completed: false,
+                            createdAt: new Date().toISOString()
+                        };
+                        this.todos.push(newTodo);
+                        this.inputValue = '';
+                        this.saveTodos();
+                    }
+                },
+
+                toggleTodo(id) {
+                    const todo = this.todos.find(t => t.id === id);
+                    if (todo) {
+                        todo.completed = !todo.completed;
+                        this.saveTodos();
+                    }
+                },
+
+                deleteTodo(id) {
+                    this.todos = this.todos.filter(todo => todo.id !== id);
+                    this.saveTodos();
+                },
+
+                clearCompleted() {
+                    this.todos = this.todos.filter(todo => !todo.completed);
+                    this.saveTodos();
+                },
+
+                saveTodos() {
+                    localStorage.setItem('todos', JSON.stringify(this.todos));
+                }
+            }
+        }
+    </script>
+</body>
+</html>
