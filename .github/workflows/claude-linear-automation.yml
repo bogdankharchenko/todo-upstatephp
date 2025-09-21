@@ -113,8 +113,8 @@ jobs:
             1. Find ONE ticket in Linear with "Backlog" or "Todo" status
             2. Move it to "In Progress" status immediately
             3. Implement the feature described in that ticket
-            4. Create a pull request
-            5. Move the ticket to appropriate status when done
+            4. Create a pull request and assign @bogdankharchenko
+            5. Move the ticket to "Needs Review" status after PR creation
 
             ## Step-by-Step Workflow (FOLLOW EXACTLY)
 
@@ -145,6 +145,12 @@ jobs:
               - Summary of changes
               - Link to Linear ticket
               - "Closes TOD-X"
+            - IMPORTANT: Assign the PR to @bogdankharchenko using: gh pr edit --add-assignee bogdankharchenko
+
+            ### Step 6: Update Linear Status to Needs Review
+            - After PR is successfully created, update the Linear ticket status to "Needs Review"
+            - This indicates the implementation is complete and awaiting code review
+            - Do NOT move to "Done" - that happens only after PR is merged
 
             ## DO NOT:
             - Work on multiple tickets
@@ -152,16 +158,20 @@ jobs:
             - Run extensive linting on unchanged files
             - Add features not requested in the ticket
             - Create documentation unless the ticket specifically asks for it
+            - Move tickets to "Done" status (only "Needs Review")
 
             ## FOCUS ON:
             - Completing exactly what the ticket asks for
             - Using existing patterns in the codebase
             - Making the minimal necessary changes
             - Getting the PR created successfully
+            - Assigning PR to @bogdankharchenko for review
+            - Moving ticket to "Needs Review" status
 
             ## If Something Fails:
             - If no tickets available: Exit gracefully
             - If implementation blocked: Create draft PR with explanation
             - If PR creation fails: Document the error
+            - Always attempt to move ticket to "Needs Review" if work was done
 
             Remember: You are working autonomously. Make decisions and proceed. Do not ask for clarification.
