@@ -30,20 +30,84 @@
 				Todo App
 			</h1>
 			
-			<div class="flex gap-2">
-				<input
-						type="text"
-						x-model="inputValue"
-						@keydown.enter="addTodo()"
-						placeholder="What needs to be done?"
-						class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-				/>
-				<button
-						@click="addTodo()"
-						class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-				>
-					Add Todo
-				</button>
+			<div class="space-y-3">
+				<div class="flex gap-2">
+					<input
+							type="text"
+							x-model="inputValue"
+							@keydown.enter="addTodo()"
+							placeholder="What needs to be done?"
+							class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+					/>
+					<button
+							@click="addTodo()"
+							class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+					>
+						Add Todo
+					</button>
+				</div>
+				
+				<div class="flex gap-2 items-center">
+					<div class="relative">
+						<button
+								@click="showIconPicker = !showIconPicker"
+								class="flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700 dark:text-white"
+						>
+							<span x-text="selectedIcon || '📝'"></span>
+							<span class="text-sm">Icon</span>
+						</button>
+						<div x-show="showIconPicker" x-transition class="absolute top-full mt-1 z-10 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg p-3">
+							<div class="grid grid-cols-5 gap-2 w-48">
+								<template x-for="icon in presetIcons">
+									<button
+											@click="selectIcon(icon)"
+											class="text-xl hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded"
+											x-text="icon"
+									></button>
+								</template>
+								<button
+										@click="selectIcon('')"
+										class="text-xs hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded border border-gray-300 dark:border-gray-600"
+								>
+									None
+								</button>
+							</div>
+						</div>
+					</div>
+					
+					<div class="relative">
+						<button
+								@click="showColorPicker = !showColorPicker"
+								class="flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700 dark:text-white"
+								:class="selectedColor ? getColorClass(selectedColor) : ''"
+						>
+							<div class="w-4 h-4 rounded-full border border-gray-300" :class="selectedColor ? getColorClass(selectedColor) : 'bg-gray-200'"></div>
+							<span class="text-sm">Color</span>
+						</button>
+						<div x-show="showColorPicker" x-transition class="absolute top-full mt-1 z-10 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg p-3">
+							<div class="space-y-2 w-32">
+								<template x-for="color in presetColors">
+									<button
+											@click="selectColor(color.value)"
+											class="w-full text-left px-3 py-2 rounded border text-sm"
+											:class="color.class"
+											x-text="color.name"
+									></button>
+								</template>
+								<button
+										@click="selectColor('')"
+										class="w-full text-left px-3 py-2 rounded border border-gray-300 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white"
+								>
+									None
+								</button>
+							</div>
+						</div>
+					</div>
+					
+					<div x-show="selectedIcon || selectedColor" class="text-sm text-gray-500 dark:text-gray-400">
+						Preview: <span x-text="selectedIcon"></span> <span class="px-2 py-1 rounded text-xs" :class="getColorClass(selectedColor)" x-text="inputValue || 'Your todo'"></span>
+					</div>
+				</div>
 			</div>
 		</div>
 		
@@ -87,8 +151,11 @@
 				</template>
 				<template x-for="todo in filteredTodos" :key="todo.id">
 					<div
-							class="todo-item flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-all"
-							:class="todo.completed ? 'completed' : ''"
+							class="todo-item flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-all"
+							:class="[
+								todo.completed ? 'completed' : '',
+								todo.color ? getColorClass(todo.color) : 'bg-gray-50 dark:bg-gray-700'
+							]"
 					>
 						<input
 								type="checkbox"
@@ -96,6 +163,7 @@
 								@change="toggleTodo(todo.id)"
 								class="w-5 h-5 text-blue-500 rounded focus:ring-blue-500"
 						/>
+						<span x-show="todo.icon" class="text-lg" x-text="todo.icon"></span>
 						<span class="todo-text flex-1 text-gray-900 dark:text-white" x-text="todo.text"></span>
 						<button
 								@click="deleteTodo(todo.id)"
@@ -122,12 +190,43 @@ function todoApp() {
 		todos: [],
 		inputValue: '',
 		filter: 'all',
+		selectedColor: '',
+		selectedIcon: '',
+		showColorPicker: false,
+		showIconPicker: false,
+		
+		presetColors: [
+			{ name: 'Blue', value: 'blue', class: 'bg-blue-100 border-blue-300 text-blue-800' },
+			{ name: 'Green', value: 'green', class: 'bg-green-100 border-green-300 text-green-800' },
+			{ name: 'Yellow', value: 'yellow', class: 'bg-yellow-100 border-yellow-300 text-yellow-800' },
+			{ name: 'Red', value: 'red', class: 'bg-red-100 border-red-300 text-red-800' },
+			{ name: 'Purple', value: 'purple', class: 'bg-purple-100 border-purple-300 text-purple-800' },
+			{ name: 'Pink', value: 'pink', class: 'bg-pink-100 border-pink-300 text-pink-800' },
+			{ name: 'Gray', value: 'gray', class: 'bg-gray-100 border-gray-300 text-gray-800' }
+		],
+		
+		presetIcons: [
+			'📝', '💼', '🏠', '🛍️', '💪', '📞', '✈️', '🎯', '💡', '🔥',
+			'⭐', '❤️', '🎉', '📚', '🍔', '🚗', '🎵', '🎮', '💻', '📱'
+		],
 		
 		init() {
 			const savedTodos = localStorage.getItem('todos');
 			if (savedTodos) {
-				this.todos = JSON.parse(savedTodos);
+				this.todos = JSON.parse(savedTodos).map(todo => ({
+					...todo,
+					color: todo.color || '',
+					icon: todo.icon || ''
+				}));
 			}
+			
+			// Close dropdowns when clicking outside
+			document.addEventListener('click', (e) => {
+				if (!e.target.closest('.relative')) {
+					this.showColorPicker = false;
+					this.showIconPicker = false;
+				}
+			});
 		},
 		
 		get filteredTodos() {
@@ -156,7 +255,9 @@ function todoApp() {
 					id: Date.now(),
 					text: this.inputValue,
 					completed: false,
-					createdAt: new Date().toISOString()
+					createdAt: new Date().toISOString(),
+					color: this.selectedColor,
+					icon: this.selectedIcon
 				};
 				this.todos.push(newTodo);
 				this.inputValue = '';
@@ -180,6 +281,21 @@ function todoApp() {
 		clearCompleted() {
 			this.todos = this.todos.filter(todo => !todo.completed);
 			this.saveTodos();
+		},
+		
+		selectColor(color) {
+			this.selectedColor = color;
+			this.showColorPicker = false;
+		},
+		
+		selectIcon(icon) {
+			this.selectedIcon = icon;
+			this.showIconPicker = false;
+		},
+		
+		getColorClass(color) {
+			const colorConfig = this.presetColors.find(c => c.value === color);
+			return colorConfig ? colorConfig.class : '';
 		},
 		
 		saveTodos() {
