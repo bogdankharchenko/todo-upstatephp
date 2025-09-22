@@ -24,6 +24,26 @@
 	.todo-item.completed .todo-text {
 		text-decoration: line-through;
 	}
+	
+	.overdue {
+		background-color: #fef2f2;
+		border-color: #fecaca;
+	}
+	
+	.dark .overdue {
+		background-color: #450a0a;
+		border-color: #7f1d1d;
+	}
+	
+	.overdue .todo-text,
+	.overdue .due-date {
+		color: #dc2626;
+	}
+	
+	.dark .overdue .todo-text,
+	.dark .overdue .due-date {
+		color: #f87171;
+	}
 	</style>
 </head>
 <body class="antialiased bg-gray-50 dark:bg-gray-900">
@@ -34,20 +54,37 @@
 				Todo App
 			</h1>
 			
-			<div class="flex gap-2">
-				<input
-						type="text"
-						x-model="inputValue"
-						@keydown.enter="addTodo()"
-						placeholder="What needs to be done?"
-						class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-				/>
-				<button
-						@click="addTodo()"
-						class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-				>
-					Add Todo
-				</button>
+			<div class="space-y-2">
+				<div class="flex gap-2">
+					<input
+							type="text"
+							x-model="inputValue"
+							@keydown.enter="addTodo()"
+							placeholder="What needs to be done?"
+							class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+					/>
+					<button
+							@click="addTodo()"
+							class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+					>
+						Add Todo
+					</button>
+				</div>
+				<div class="flex gap-2 items-center">
+					<label class="text-sm text-gray-600 dark:text-gray-400">Due Date (optional):</label>
+					<input
+							type="date"
+							x-model="dueDateValue"
+							class="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+					/>
+					<button
+							x-show="dueDateValue"
+							@click="dueDateValue = ''"
+							class="text-xs text-gray-500 hover:text-red-500 transition-colors"
+					>
+						Clear
+					</button>
+				</div>
 			</div>
 		</div>
 		
@@ -91,8 +128,11 @@
 				</template>
 				<template x-for="todo in filteredTodos" :key="todo.id">
 					<div
-							class="todo-item flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-all"
-							:class="todo.completed ? 'completed' : ''"
+							class="todo-item flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-all border"
+							:class="[
+								todo.completed ? 'completed' : '',
+								isOverdue(todo) && !todo.completed ? 'overdue' : ''
+							]"
 					>
 						<input
 								type="checkbox"
@@ -100,7 +140,13 @@
 								@change="toggleTodo(todo.id)"
 								class="w-5 h-5 text-blue-500 rounded focus:ring-blue-500"
 						/>
-						<span class="todo-text flex-1 text-gray-900 dark:text-white" x-text="todo.text"></span>
+						<div class="flex-1">
+							<div class="todo-text text-gray-900 dark:text-white" x-text="todo.text"></div>
+							<div x-show="todo.dueDate" class="due-date text-xs text-gray-500 dark:text-gray-400 mt-1">
+								Due: <span x-text="formatDueDate(todo.dueDate)"></span>
+								<span x-show="isOverdue(todo) && !todo.completed" class="text-red-600 dark:text-red-400 font-medium">(Overdue)</span>
+							</div>
+						</div>
 						<button
 								@click="deleteTodo(todo.id)"
 								class="px-3 py-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors"
@@ -125,6 +171,7 @@ function todoApp() {
 	return {
 		todos: [],
 		inputValue: '',
+		dueDateValue: '',
 		filter: 'all',
 		
 		init() {
@@ -135,7 +182,7 @@ function todoApp() {
 		},
 		
 		get filteredTodos() {
-			return this.todos.filter(todo => {
+			let filtered = this.todos.filter(todo => {
 				if (this.filter === 'active') {
 					return !todo.completed;
 				}
@@ -143,6 +190,26 @@ function todoApp() {
 					return todo.completed;
 				}
 				return true;
+			});
+			
+			// Sort by due date: overdue first, then by due date ascending, then items without due dates
+			return filtered.sort((a, b) => {
+				if (!a.dueDate && !b.dueDate) return 0;
+				if (!a.dueDate) return 1;
+				if (!b.dueDate) return -1;
+				
+				const dateA = new Date(a.dueDate);
+				const dateB = new Date(b.dueDate);
+				const today = new Date();
+				today.setHours(0, 0, 0, 0);
+				
+				const aOverdue = dateA < today && !a.completed;
+				const bOverdue = dateB < today && !b.completed;
+				
+				if (aOverdue && !bOverdue) return -1;
+				if (!aOverdue && bOverdue) return 1;
+				
+				return dateA - dateB;
 			});
 		},
 		
@@ -160,10 +227,12 @@ function todoApp() {
 					id: Date.now(),
 					text: this.inputValue,
 					completed: false,
-					createdAt: new Date().toISOString()
+					createdAt: new Date().toISOString(),
+					dueDate: this.dueDateValue || null
 				};
 				this.todos.push(newTodo);
 				this.inputValue = '';
+				this.dueDateValue = '';
 				this.saveTodos();
 			}
 		},
@@ -188,6 +257,31 @@ function todoApp() {
 		
 		saveTodos() {
 			localStorage.setItem('todos', JSON.stringify(this.todos));
+		},
+		
+		isOverdue(todo) {
+			if (!todo.dueDate || todo.completed) return false;
+			const today = new Date();
+			today.setHours(0, 0, 0, 0);
+			const dueDate = new Date(todo.dueDate);
+			return dueDate < today;
+		},
+		
+		formatDueDate(dateString) {
+			if (!dateString) return '';
+			const date = new Date(dateString);
+			const today = new Date();
+			today.setHours(0, 0, 0, 0);
+			const tomorrow = new Date(today);
+			tomorrow.setDate(tomorrow.getDate() + 1);
+			
+			if (date.toDateString() === today.toDateString()) {
+				return 'Today';
+			} else if (date.toDateString() === tomorrow.toDateString()) {
+				return 'Tomorrow';
+			} else {
+				return date.toLocaleDateString();
+			}
 		}
 	}
 }
