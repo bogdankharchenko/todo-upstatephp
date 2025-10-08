@@ -75,6 +75,12 @@
 					Completed (<span x-text="completedTodoCount"></span>)
 				</button>
 				<button
+						@click="exportToMarkdown()"
+						class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+				>
+					Export as Markdown
+				</button>
+				<button
 						x-show="completedTodoCount > 0"
 						@click="clearCompleted()"
 						class="ml-auto px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
@@ -184,6 +190,58 @@ function todoApp() {
 		clearCompleted() {
 			this.todos = this.todos.filter(todo => !todo.completed);
 			this.saveTodos();
+		},
+		
+		exportToMarkdown() {
+			if (this.todos.length === 0) {
+				alert('No todos to export!');
+				return;
+			}
+			
+			const activeTodos = this.todos.filter(todo => !todo.completed);
+			const completedTodos = this.todos.filter(todo => todo.completed);
+			
+			let markdown = '# Todo List\n\n';
+			
+			if (activeTodos.length > 0) {
+				markdown += '## Active\n\n';
+				activeTodos.forEach(todo => {
+					markdown += `- [ ] ${todo.text}\n`;
+				});
+				markdown += '\n';
+			}
+			
+			if (completedTodos.length > 0) {
+				markdown += '## Completed\n\n';
+				completedTodos.forEach(todo => {
+					markdown += `- [x] ${todo.text}\n`;
+				});
+			}
+			
+			// Copy to clipboard
+			navigator.clipboard.writeText(markdown).then(() => {
+				// Show toast notification
+				this.showToast('Todos exported to clipboard as Markdown!');
+			}).catch(err => {
+				console.error('Failed to copy to clipboard:', err);
+				alert('Failed to copy to clipboard. Please try again.');
+			});
+		},
+		
+		showToast(message) {
+			// Create a simple toast notification
+			const toast = document.createElement('div');
+			toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-opacity';
+			toast.textContent = message;
+			document.body.appendChild(toast);
+			
+			// Remove toast after 3 seconds
+			setTimeout(() => {
+				toast.style.opacity = '0';
+				setTimeout(() => {
+					document.body.removeChild(toast);
+				}, 300);
+			}, 3000);
 		},
 		
 		saveTodos() {
