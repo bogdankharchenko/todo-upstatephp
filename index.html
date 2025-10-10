@@ -34,20 +34,37 @@
 				Todo App
 			</h1>
 			
-			<div class="flex gap-2">
-				<input
-						type="text"
-						x-model="inputValue"
-						@keydown.enter="addTodo()"
-						placeholder="What needs to be done?"
-						class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-				/>
-				<button
-						@click="addTodo()"
-						class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-				>
-					Add Todo
-				</button>
+			<div class="space-y-3">
+				<div class="flex gap-2">
+					<input
+							type="text"
+							x-model="inputValue"
+							@keydown.enter="addTodo()"
+							placeholder="What needs to be done?"
+							class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+					/>
+					<button
+							@click="addTodo()"
+							class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+					>
+						Add Todo
+					</button>
+				</div>
+				<div class="flex gap-2 items-center">
+					<input
+							type="date"
+							x-model="inputDueDate"
+							class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+					/>
+					<span class="text-sm text-gray-500 dark:text-gray-400">Optional due date</span>
+					<button
+							x-show="inputDueDate"
+							@click="inputDueDate = ''"
+							class="px-2 py-1 text-xs text-gray-500 hover:text-red-500 transition-colors"
+					>
+						Clear
+					</button>
+				</div>
 			</div>
 		</div>
 		
@@ -91,22 +108,34 @@
 				</template>
 				<template x-for="todo in filteredTodos" :key="todo.id">
 					<div
-							class="todo-item flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-all"
-							:class="todo.completed ? 'completed' : ''"
+							class="todo-item p-3 rounded-lg transition-all"
+							:class="{
+								'completed': todo.completed,
+								'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800': isOverdue(todo) && !todo.completed,
+								'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600': !isOverdue(todo) || todo.completed
+							}"
 					>
-						<input
-								type="checkbox"
-								:checked="todo.completed"
-								@change="toggleTodo(todo.id)"
-								class="w-5 h-5 text-blue-500 rounded focus:ring-blue-500"
-						/>
-						<span class="todo-text flex-1 text-gray-900 dark:text-white" x-text="todo.text"></span>
-						<button
-								@click="deleteTodo(todo.id)"
-								class="px-3 py-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors"
-						>
-							Delete
-						</button>
+						<div class="flex items-center gap-3">
+							<input
+									type="checkbox"
+									:checked="todo.completed"
+									@change="toggleTodo(todo.id)"
+									class="w-5 h-5 text-blue-500 rounded focus:ring-blue-500"
+							/>
+							<div class="flex-1">
+								<div class="todo-text text-gray-900 dark:text-white" :class="{'text-red-700 dark:text-red-300': isOverdue(todo) && !todo.completed}" x-text="todo.text"></div>
+								<div x-show="todo.dueDate" class="text-xs mt-1" :class="{'text-red-600 dark:text-red-400 font-medium': isOverdue(todo) && !todo.completed, 'text-gray-500 dark:text-gray-400': !isOverdue(todo) || todo.completed}">
+									<span x-text="isOverdue(todo) && !todo.completed ? 'Overdue: ' : 'Due: '"></span>
+									<span x-text="formatDueDate(todo.dueDate)"></span>
+								</div>
+							</div>
+							<button
+									@click="deleteTodo(todo.id)"
+									class="px-3 py-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors"
+							>
+								Delete
+							</button>
+						</div>
 					</div>
 				</template>
 			</div>
@@ -125,6 +154,7 @@ function todoApp() {
 	return {
 		todos: [],
 		inputValue: '',
+		inputDueDate: '',
 		filter: 'all',
 		
 		init() {
@@ -135,7 +165,7 @@ function todoApp() {
 		},
 		
 		get filteredTodos() {
-			return this.todos.filter(todo => {
+			let filtered = this.todos.filter(todo => {
 				if (this.filter === 'active') {
 					return !todo.completed;
 				}
@@ -143,6 +173,23 @@ function todoApp() {
 					return todo.completed;
 				}
 				return true;
+			});
+			
+			// Sort by due date (overdue first, then by due date, then by creation date)
+			return filtered.sort((a, b) => {
+				// If one has due date and other doesn't, prioritize the one with due date
+				if (a.dueDate && !b.dueDate) return -1;
+				if (!a.dueDate && b.dueDate) return 1;
+				
+				// If both have due dates, sort by due date
+				if (a.dueDate && b.dueDate) {
+					const aDate = new Date(a.dueDate);
+					const bDate = new Date(b.dueDate);
+					return aDate - bDate;
+				}
+				
+				// If neither have due dates, sort by creation date
+				return new Date(a.createdAt) - new Date(b.createdAt);
 			});
 		},
 		
@@ -160,10 +207,12 @@ function todoApp() {
 					id: Date.now(),
 					text: this.inputValue,
 					completed: false,
-					createdAt: new Date().toISOString()
+					createdAt: new Date().toISOString(),
+					dueDate: this.inputDueDate || null
 				};
 				this.todos.push(newTodo);
 				this.inputValue = '';
+				this.inputDueDate = '';
 				this.saveTodos();
 			}
 		},
@@ -188,6 +237,35 @@ function todoApp() {
 		
 		saveTodos() {
 			localStorage.setItem('todos', JSON.stringify(this.todos));
+		},
+		
+		isOverdue(todo) {
+			if (!todo.dueDate) return false;
+			const today = new Date();
+			const dueDate = new Date(todo.dueDate);
+			today.setHours(23, 59, 59, 999); // End of today
+			return dueDate < today;
+		},
+		
+		formatDueDate(dateString) {
+			if (!dateString) return '';
+			const date = new Date(dateString);
+			const today = new Date();
+			const tomorrow = new Date(today);
+			tomorrow.setDate(tomorrow.getDate() + 1);
+			
+			// Reset time for comparison
+			today.setHours(0, 0, 0, 0);
+			tomorrow.setHours(0, 0, 0, 0);
+			date.setHours(0, 0, 0, 0);
+			
+			if (date.getTime() === today.getTime()) {
+				return 'Today';
+			} else if (date.getTime() === tomorrow.getTime()) {
+				return 'Tomorrow';
+			} else {
+				return date.toLocaleDateString();
+			}
 		}
 	}
 }
