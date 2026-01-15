@@ -97,6 +97,6 @@ jobs:
               - "Closes ${{ inputs.ticket_id }}"
 
             Focus on producing clean, working code that fits naturally into this codebase.
-          claude_args: '--allowedTools "Bash(*),Read,Write,Edit,MultiEdit,NotebookEdit,Glob,Grep,WebFetch,WebSearch,TodoWrite,Task"'
+          claude_args: '--allowedTools "Bash(git:*),Bash(gh:*),Bash(npm:*),Bash(npx:*),Bash(yarn:*),Bash(pnpm:*),Bash(composer:*),Bash(php:*),Bash(python:*),Bash(pip:*),Bash(go:*),Bash(cargo:*),Bash(make:*),Bash(ls:*),Bash(cat:*),Bash(find:*),Bash(mkdir:*),Bash(rm:*),Bash(cp:*),Bash(mv:*),Bash(echo:*),Bash(test:*),Read,Write,Edit,MultiEdit,NotebookEdit,Glob,Grep,WebFetch,WebSearch,TodoWrite,Task"'
         env:
           GH_TOKEN: ${{ github.token }}
