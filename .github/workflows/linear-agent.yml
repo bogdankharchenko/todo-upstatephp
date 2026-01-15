@@ -56,24 +56,8 @@ jobs:
         id: claude
         uses: anthropics/claude-code-action@v1
         with:
-          mode: agent
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          allowed_tools: |
-            Bash(*),
-            Read,
-            Write,
-            Edit,
-            MultiEdit,
-            NotebookEdit,
-            Glob,
-            Grep,
-            WebFetch,
-            WebSearch,
-            TodoWrite,
-            Task,
-            BashOutput,
-            KillShell,
-          direct_prompt: |
+          prompt: |
             You are implementing a ticket from Linear.
 
             ## Ticket: ${{ inputs.ticket_id }}
@@ -113,5 +97,6 @@ jobs:
               - "Closes ${{ inputs.ticket_id }}"
 
             Focus on producing clean, working code that fits naturally into this codebase.
+          claude_args: '--allowedTools "Bash(*),Read,Write,Edit,MultiEdit,NotebookEdit,Glob,Grep,WebFetch,WebSearch,TodoWrite,Task"'
         env:
           GH_TOKEN: ${{ github.token }}
