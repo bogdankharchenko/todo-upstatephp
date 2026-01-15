@@ -16,23 +16,128 @@
 	.todo-item {
 		transition: all 0.3s ease;
 	}
-	
+
 	.todo-item.completed {
 		opacity: 0.6;
 	}
-	
+
 	.todo-item.completed .todo-text {
 		text-decoration: line-through;
+	}
+
+	@keyframes fadeIn {
+		from {
+			opacity: 0;
+			transform: translateY(10px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	.fade-in {
+		animation: fadeIn 0.5s ease-out;
+	}
+
+	.gradient-bg {
+		background: linear-gradient(to bottom right, #000000, #1a1a1a);
+	}
+
+	.vercel-button {
+		background: white;
+		color: black;
+		transition: all 0.2s ease;
+	}
+
+	.vercel-button:hover {
+		background: rgba(255, 255, 255, 0.9);
+		box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15);
+	}
+
+	.input-field {
+		background: rgba(255, 255, 255, 0.05);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		transition: all 0.2s ease;
+	}
+
+	.input-field:focus {
+		background: rgba(255, 255, 255, 0.08);
+		border-color: rgba(255, 255, 255, 0.3);
 	}
 	</style>
 </head>
 <body class="antialiased bg-gray-50 dark:bg-gray-900">
-<div class="min-h-screen flex items-center justify-center p-4">
-	<div x-data="todoApp()" class="w-full max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-xl">
+<div x-data="todoApp()" class="min-h-screen">
+	<!-- Login Screen -->
+	<div x-show="!isAuthenticated" class="min-h-screen gradient-bg flex items-center justify-center p-4">
+		<div class="w-full max-w-md fade-in">
+			<div class="text-center mb-8">
+				<svg class="w-12 h-12 mx-auto mb-4" viewBox="0 0 24 24" fill="white">
+					<path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+				</svg>
+				<h1 class="text-4xl font-bold text-white mb-2">Welcome</h1>
+				<p class="text-gray-400">Sign in to continue to your todos</p>
+			</div>
+
+			<div class="bg-black bg-opacity-40 backdrop-blur-sm rounded-2xl p-8 border border-white border-opacity-10">
+				<form @submit.prevent="login()">
+					<div class="space-y-4">
+						<div>
+							<label class="block text-sm font-medium text-gray-300 mb-2">Email</label>
+							<input
+								type="email"
+								x-model="email"
+								required
+								placeholder="you@example.com"
+								class="input-field w-full px-4 py-3 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-20"
+							/>
+						</div>
+
+						<div>
+							<label class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+							<input
+								type="password"
+								x-model="password"
+								required
+								placeholder="Enter your password"
+								class="input-field w-full px-4 py-3 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-20"
+							/>
+						</div>
+
+						<button
+							type="submit"
+							class="vercel-button w-full px-4 py-3 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
+						>
+							Continue
+						</button>
+					</div>
+				</form>
+
+				<div class="mt-6 text-center">
+					<p class="text-sm text-gray-400">
+						Hint: Use any email and password to login
+					</p>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Todo App -->
+	<div x-show="isAuthenticated" class="min-h-screen flex items-center justify-center p-4">
+		<div class="w-full max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-xl fade-in">
 		<div class="p-6 border-b border-gray-200 dark:border-gray-700">
-			<h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-6 text-center">
-				Todo App
-			</h1>
+			<div class="flex items-center justify-between mb-6">
+				<h1 class="text-3xl font-bold text-gray-900 dark:text-white text-center flex-1">
+					Todo App
+				</h1>
+				<button
+					@click="logout()"
+					class="px-4 py-2 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+				>
+					Logout
+				</button>
+			</div>
 			
 			<div class="flex gap-2">
 				<input
@@ -117,6 +222,7 @@
 				<span x-text="activeTodoCount"></span> item<span x-text="activeTodoCount !== 1 ? 's' : ''"></span> left
 			</p>
 		</div>
+		</div>
 	</div>
 </div>
 
@@ -126,12 +232,37 @@ function todoApp() {
 		todos: [],
 		inputValue: '',
 		filter: 'all',
-		
+		isAuthenticated: false,
+		email: '',
+		password: '',
+
 		init() {
+			const authStatus = localStorage.getItem('isAuthenticated');
+			if (authStatus === 'true') {
+				this.isAuthenticated = true;
+			}
+
 			const savedTodos = localStorage.getItem('todos');
 			if (savedTodos) {
 				this.todos = JSON.parse(savedTodos);
 			}
+		},
+
+		login() {
+			if (this.email && this.password) {
+				this.isAuthenticated = true;
+				localStorage.setItem('isAuthenticated', 'true');
+				localStorage.setItem('userEmail', this.email);
+				this.password = '';
+			}
+		},
+
+		logout() {
+			this.isAuthenticated = false;
+			this.email = '';
+			this.password = '';
+			localStorage.removeItem('isAuthenticated');
+			localStorage.removeItem('userEmail');
 		},
 		
 		get filteredTodos() {
