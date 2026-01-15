@@ -24,6 +24,35 @@
 	.todo-item.completed .todo-text {
 		text-decoration: line-through;
 	}
+
+	.color-option {
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	.color-option:hover {
+		transform: scale(1.1);
+	}
+
+	.emoji-picker {
+		display: grid;
+		grid-template-columns: repeat(6, 1fr);
+		gap: 0.5rem;
+	}
+
+	.emoji-option {
+		cursor: pointer;
+		font-size: 1.5rem;
+		padding: 0.5rem;
+		border-radius: 0.375rem;
+		transition: all 0.2s ease;
+		text-align: center;
+	}
+
+	.emoji-option:hover {
+		background-color: rgba(59, 130, 246, 0.1);
+		transform: scale(1.1);
+	}
 	</style>
 </head>
 <body class="antialiased bg-gray-50 dark:bg-gray-900">
@@ -34,20 +63,72 @@
 				Todo App
 			</h1>
 			
-			<div class="flex gap-2">
-				<input
-						type="text"
-						x-model="inputValue"
-						@keydown.enter="addTodo()"
-						placeholder="What needs to be done?"
-						class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-				/>
-				<button
-						@click="addTodo()"
-						class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-				>
-					Add Todo
-				</button>
+			<div class="flex flex-col gap-4">
+				<div class="flex gap-2">
+					<input
+							type="text"
+							x-model="inputValue"
+							@keydown.enter="addTodo()"
+							placeholder="What needs to be done?"
+							class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+					/>
+					<button
+							@click="addTodo()"
+							class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+					>
+						Add Todo
+					</button>
+				</div>
+
+				<div class="flex gap-4 items-center">
+					<div class="flex gap-2 items-center">
+						<span class="text-sm text-gray-600 dark:text-gray-400">Color:</span>
+						<template x-for="color in availableColors" :key="color.value">
+							<div
+								@click="selectedColor = color.value"
+								:style="`background-color: ${color.value}`"
+								:class="selectedColor === color.value ? 'ring-2 ring-offset-2 ring-blue-500 dark:ring-offset-gray-800' : ''"
+								class="color-option w-6 h-6 rounded-full"
+								:title="color.name"
+							></div>
+						</template>
+					</div>
+
+					<div class="flex gap-2 items-center">
+						<span class="text-sm text-gray-600 dark:text-gray-400">Icon:</span>
+						<div class="relative">
+							<button
+								@click="showEmojiPicker = !showEmojiPicker"
+								class="px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+							>
+								<span x-text="selectedEmoji || '➕'"></span>
+							</button>
+							<div
+								x-show="showEmojiPicker"
+								@click.outside="showEmojiPicker = false"
+								x-transition
+								class="absolute top-full mt-2 left-0 bg-white dark:bg-gray-700 rounded-lg shadow-lg p-3 z-10 emoji-picker"
+								style="display: none;"
+							>
+								<template x-for="emoji in availableEmojis" :key="emoji">
+									<div
+										@click="selectedEmoji = emoji; showEmojiPicker = false"
+										class="emoji-option"
+									>
+										<span x-text="emoji"></span>
+									</div>
+								</template>
+							</div>
+						</div>
+						<button
+							x-show="selectedEmoji"
+							@click="selectedEmoji = ''"
+							class="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+						>
+							Clear
+						</button>
+					</div>
+				</div>
 			</div>
 		</div>
 		
@@ -100,6 +181,16 @@
 								@change="toggleTodo(todo.id)"
 								class="w-5 h-5 text-blue-500 rounded focus:ring-blue-500"
 						/>
+						<span
+							x-show="todo.emoji"
+							class="text-xl"
+							x-text="todo.emoji"
+						></span>
+						<div
+							x-show="todo.color"
+							:style="`background-color: ${todo.color}`"
+							class="w-3 h-3 rounded-full"
+						></div>
 						<span class="todo-text flex-1 text-gray-900 dark:text-white" x-text="todo.text"></span>
 						<button
 								@click="deleteTodo(todo.id)"
@@ -126,7 +217,26 @@ function todoApp() {
 		todos: [],
 		inputValue: '',
 		filter: 'all',
-		
+		selectedColor: '',
+		selectedEmoji: '',
+		showEmojiPicker: false,
+		availableColors: [
+			{ name: 'None', value: '' },
+			{ name: 'Red', value: '#ef4444' },
+			{ name: 'Orange', value: '#f97316' },
+			{ name: 'Yellow', value: '#eab308' },
+			{ name: 'Green', value: '#22c55e' },
+			{ name: 'Blue', value: '#3b82f6' },
+			{ name: 'Purple', value: '#a855f7' },
+			{ name: 'Pink', value: '#ec4899' }
+		],
+		availableEmojis: [
+			'📋', '✅', '⚡', '🔥', '💡', '📝',
+			'🎯', '⭐', '🚀', '💼', '🏠', '🎨',
+			'📱', '💻', '📚', '🎵', '🏋️', '🍕',
+			'🌟', '🎉', '🔔', '📌', '🔖', '💪'
+		],
+
 		init() {
 			const savedTodos = localStorage.getItem('todos');
 			if (savedTodos) {
@@ -160,10 +270,14 @@ function todoApp() {
 					id: Date.now(),
 					text: this.inputValue,
 					completed: false,
-					createdAt: new Date().toISOString()
+					createdAt: new Date().toISOString(),
+					color: this.selectedColor,
+					emoji: this.selectedEmoji
 				};
 				this.todos.push(newTodo);
 				this.inputValue = '';
+				this.selectedColor = '';
+				this.selectedEmoji = '';
 				this.saveTodos();
 			}
 		},
