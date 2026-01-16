@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Submit Feedback - Todo App</title>
+
+	<script src="https://cdn.tailwindcss.com"></script>
+	<script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+	<script>
+	tailwind.config = {
+		darkMode: 'class',
+	}
+	</script>
+	<style>
+	.screenshot-preview {
+		transition: all 0.3s ease;
+	}
+
+	.file-upload-area {
+		border: 2px dashed #cbd5e0;
+		transition: all 0.3s ease;
+	}
+
+	.file-upload-area:hover {
+		border-color: #3b82f6;
+		background-color: #eff6ff;
+	}
+
+	.dark .file-upload-area {
+		border-color: #4b5563;
+	}
+
+	.dark .file-upload-area:hover {
+		border-color: #3b82f6;
+		background-color: #1e3a5f;
+	}
+	</style>
+</head>
+<body class="antialiased bg-gray-50 dark:bg-gray-900">
+<div class="min-h-screen flex items-center justify-center p-4">
+	<div x-data="feedbackApp()" class="w-full max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-xl">
+		<div class="p-6 border-b border-gray-200 dark:border-gray-700">
+			<div class="flex items-center gap-4 mb-4">
+				<a href="index.html" class="text-blue-500 hover:text-blue-600 transition-colors">
+					<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+					</svg>
+				</a>
+				<h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+					Submit Feedback
+				</h1>
+			</div>
+			<p class="text-gray-600 dark:text-gray-400">
+				Help us improve by sharing your thoughts and screenshots
+			</p>
+		</div>
+
+		<div class="p-6">
+			<form @submit.prevent="submitFeedback()" class="space-y-6">
+				<div>
+					<label for="feedback-type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+						Feedback Type
+					</label>
+					<select
+						id="feedback-type"
+						x-model="feedbackType"
+						class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+					>
+						<option value="bug">Bug Report</option>
+						<option value="feature">Feature Request</option>
+						<option value="improvement">Improvement</option>
+						<option value="other">Other</option>
+					</select>
+				</div>
+
+				<div>
+					<label for="feedback-message" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+						Your Feedback
+					</label>
+					<textarea
+						id="feedback-message"
+						x-model="feedbackMessage"
+						rows="5"
+						placeholder="Tell us what's on your mind..."
+						class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white resize-none"
+					></textarea>
+				</div>
+
+				<div>
+					<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+						Attach Screenshot or Photo
+					</label>
+
+					<div class="space-y-4">
+						<div class="flex gap-2">
+							<button
+								type="button"
+								@click="captureScreenshot()"
+								class="flex-1 px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors flex items-center justify-center gap-2"
+							>
+								<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+								</svg>
+								Capture Screenshot
+							</button>
+
+							<label class="flex-1 cursor-pointer">
+								<input
+									type="file"
+									@change="handleFileUpload($event)"
+									accept="image/*"
+									class="hidden"
+								/>
+								<div class="px-4 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors flex items-center justify-center gap-2">
+									<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+									</svg>
+									Upload Photo
+								</div>
+							</label>
+						</div>
+
+						<div
+							class="file-upload-area rounded-lg p-8 text-center"
+							@drop.prevent="handleDrop($event)"
+							@dragover.prevent
+						>
+							<svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+							</svg>
+							<p class="text-gray-600 dark:text-gray-400">
+								Drag and drop an image here
+							</p>
+						</div>
+
+						<template x-if="attachedImage">
+							<div class="screenshot-preview relative rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-600">
+								<img :src="attachedImage" alt="Preview" class="w-full h-auto">
+								<button
+									type="button"
+									@click="removeImage()"
+									class="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+								>
+									<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+									</svg>
+								</button>
+								<div class="absolute bottom-2 left-2 px-3 py-1 bg-black bg-opacity-50 text-white text-sm rounded">
+									<span x-text="imageName"></span>
+								</div>
+							</div>
+						</template>
+					</div>
+				</div>
+
+				<div class="flex gap-3">
+					<button
+						type="submit"
+						class="flex-1 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors font-medium"
+					>
+						Submit Feedback
+					</button>
+					<a
+						href="index.html"
+						class="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium"
+					>
+						Cancel
+					</a>
+				</div>
+			</form>
+		</div>
+
+		<template x-if="showSuccess">
+			<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+				<div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl p-6 max-w-md w-full">
+					<div class="text-center">
+						<div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-900 mb-4">
+							<svg class="h-6 w-6 text-green-600 dark:text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+							</svg>
+						</div>
+						<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
+							Feedback Submitted!
+						</h3>
+						<p class="text-gray-600 dark:text-gray-400 mb-6">
+							Thank you for helping us improve the app.
+						</p>
+						<button
+							@click="closeSuccess()"
+							class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+						>
+							Close
+						</button>
+					</div>
+				</div>
+			</div>
+		</template>
+	</div>
+</div>
+
+<script>
+function feedbackApp() {
+	return {
+		feedbackType: 'bug',
+		feedbackMessage: '',
+		attachedImage: null,
+		imageName: '',
+		showSuccess: false,
+
+		captureScreenshot() {
+			alert('Screenshot capture would be implemented here using browser APIs like getDisplayMedia()');
+			const mockScreenshot = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iIzM0OThkYiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+TW9jayBTY3JlZW5zaG90PC90ZXh0Pjwvc3ZnPg==';
+			this.attachedImage = mockScreenshot;
+			this.imageName = 'screenshot.png';
+		},
+
+		handleFileUpload(event) {
+			const file = event.target.files[0];
+			if (file && file.type.startsWith('image/')) {
+				const reader = new FileReader();
+				reader.onload = (e) => {
+					this.attachedImage = e.target.result;
+					this.imageName = file.name;
+				};
+				reader.readAsDataURL(file);
+			}
+		},
+
+		handleDrop(event) {
+			const file = event.dataTransfer.files[0];
+			if (file && file.type.startsWith('image/')) {
+				const reader = new FileReader();
+				reader.onload = (e) => {
+					this.attachedImage = e.target.result;
+					this.imageName = file.name;
+				};
+				reader.readAsDataURL(file);
+			}
+		},
+
+		removeImage() {
+			this.attachedImage = null;
+			this.imageName = '';
+		},
+
+		submitFeedback() {
+			if (!this.feedbackMessage.trim()) {
+				alert('Please enter your feedback message');
+				return;
+			}
+
+			console.log('Mock feedback submission:', {
+				type: this.feedbackType,
+				message: this.feedbackMessage,
+				hasImage: !!this.attachedImage,
+				imageName: this.imageName
+			});
+
+			this.showSuccess = true;
+		},
+
+		closeSuccess() {
+			this.showSuccess = false;
+			this.feedbackType = 'bug';
+			this.feedbackMessage = '';
+			this.attachedImage = null;
+			this.imageName = '';
+		}
+	}
+}
+</script>
+</body>
+</html>
