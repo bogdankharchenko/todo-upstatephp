@@ -42,6 +42,11 @@
 						placeholder="What needs to be done?"
 						class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
 				/>
+				<input
+						type="date"
+						x-model="inputDueDate"
+						class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+				/>
 				<button
 						@click="addTodo()"
 						class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
@@ -91,8 +96,11 @@
 				</template>
 				<template x-for="todo in filteredTodos" :key="todo.id">
 					<div
-							class="todo-item flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-all"
-							:class="todo.completed ? 'completed' : ''"
+							class="todo-item flex items-center gap-3 p-3 rounded-lg transition-all"
+							:class="[
+								todo.completed ? 'completed' : '',
+								!todo.completed && isOverdue(todo) ? 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30' : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
+							]"
 					>
 						<input
 								type="checkbox"
@@ -100,7 +108,16 @@
 								@change="toggleTodo(todo.id)"
 								class="w-5 h-5 text-blue-500 rounded focus:ring-blue-500"
 						/>
-						<span class="todo-text flex-1 text-gray-900 dark:text-white" x-text="todo.text"></span>
+						<div class="flex-1 min-w-0">
+							<span class="todo-text block text-gray-900 dark:text-white" x-text="todo.text"></span>
+							<template x-if="todo.dueDate">
+								<span
+										class="text-xs mt-0.5 block"
+										:class="!todo.completed && isOverdue(todo) ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-500 dark:text-gray-400'"
+										x-text="(!todo.completed && isOverdue(todo) ? 'Overdue: ' : 'Due: ') + formatDate(todo.dueDate)"
+								></span>
+							</template>
+						</div>
 						<button
 								@click="deleteTodo(todo.id)"
 								class="px-3 py-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors"
@@ -125,17 +142,18 @@ function todoApp() {
 	return {
 		todos: [],
 		inputValue: '',
+		inputDueDate: '',
 		filter: 'all',
-		
+
 		init() {
 			const savedTodos = localStorage.getItem('todos');
 			if (savedTodos) {
 				this.todos = JSON.parse(savedTodos);
 			}
 		},
-		
+
 		get filteredTodos() {
-			return this.todos.filter(todo => {
+			const filtered = this.todos.filter(todo => {
 				if (this.filter === 'active') {
 					return !todo.completed;
 				}
@@ -144,30 +162,38 @@ function todoApp() {
 				}
 				return true;
 			});
+			return filtered.sort((a, b) => {
+				if (!a.dueDate && !b.dueDate) return 0;
+				if (!a.dueDate) return 1;
+				if (!b.dueDate) return -1;
+				return a.dueDate.localeCompare(b.dueDate);
+			});
 		},
-		
+
 		get activeTodoCount() {
 			return this.todos.filter(todo => !todo.completed).length;
 		},
-		
+
 		get completedTodoCount() {
 			return this.todos.filter(todo => todo.completed).length;
 		},
-		
+
 		addTodo() {
 			if (this.inputValue.trim()) {
 				const newTodo = {
 					id: Date.now(),
 					text: this.inputValue,
 					completed: false,
-					createdAt: new Date().toISOString()
+					createdAt: new Date().toISOString(),
+					dueDate: this.inputDueDate || null
 				};
 				this.todos.push(newTodo);
 				this.inputValue = '';
+				this.inputDueDate = '';
 				this.saveTodos();
 			}
 		},
-		
+
 		toggleTodo(id) {
 			const todo = this.todos.find(t => t.id === id);
 			if (todo) {
@@ -175,19 +201,31 @@ function todoApp() {
 				this.saveTodos();
 			}
 		},
-		
+
 		deleteTodo(id) {
 			this.todos = this.todos.filter(todo => todo.id !== id);
 			this.saveTodos();
 		},
-		
+
 		clearCompleted() {
 			this.todos = this.todos.filter(todo => !todo.completed);
 			this.saveTodos();
 		},
-		
+
 		saveTodos() {
 			localStorage.setItem('todos', JSON.stringify(this.todos));
+		},
+
+		isOverdue(todo) {
+			if (!todo.dueDate || todo.completed) return false;
+			const today = new Date().toISOString().slice(0, 10);
+			return todo.dueDate < today;
+		},
+
+		formatDate(dateStr) {
+			if (!dateStr) return '';
+			const [year, month, day] = dateStr.split('-');
+			return new Date(year, month - 1, day).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 		}
 	}
 }
