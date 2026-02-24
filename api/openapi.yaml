@@ -1,0 +1,852 @@
+openapi: 3.0.3
+info:
+  title: Todo API
+  description: RESTful API for the Todo application with JWT authentication and multi-user support
+  version: 1.0.0
+  contact:
+    name: Todo App
+
+servers:
+  - url: http://localhost:3000/api
+    description: Local development
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        avatar_url:
+          type: string
+          nullable: true
+        email_verified:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        token_type:
+          type: string
+          example: Bearer
+
+    Todo:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        project_id:
+          type: string
+          format: uuid
+          nullable: true
+        text:
+          type: string
+        description:
+          type: string
+          nullable: true
+        completed:
+          type: boolean
+        priority:
+          type: string
+          enum: [high, medium, low]
+        due_date:
+          type: string
+          format: date
+          nullable: true
+        recurring_pattern:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        archived_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    TodoList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Todo'
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+            limit:
+              type: integer
+            total:
+              type: integer
+            total_pages:
+              type: integer
+
+    Project:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        owner_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        color:
+          type: string
+        icon:
+          type: string
+          nullable: true
+        todo_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    UserSettings:
+      type: object
+      properties:
+        mfa_enabled:
+          type: boolean
+        notifications_enabled:
+          type: boolean
+        theme:
+          type: string
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, name, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                name:
+                  type: string
+                password:
+                  type: string
+                  minLength: 8
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout and invalidate refresh token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: Logged out successfully
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: Tokens refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  refresh_token:
+                    type: string
+                  token_type:
+                    type: string
+        '401':
+          description: Invalid refresh token
+
+  /auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Request password reset email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Reset email sent (if email exists)
+
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Reset password using token from email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password]
+              properties:
+                token:
+                  type: string
+                password:
+                  type: string
+                  minLength: 8
+      responses:
+        '200':
+          description: Password reset successfully
+        '400':
+          description: Invalid or expired token
+
+  /auth/verify-email:
+    get:
+      tags: [Auth]
+      summary: Verify email address
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Email verified
+        '400':
+          description: Invalid or expired token
+
+  /todos:
+    get:
+      tags: [Todos]
+      summary: List todos with pagination and filtering
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: filter
+          in: query
+          schema:
+            type: string
+            enum: [all, active, completed]
+        - name: priority
+          in: query
+          schema:
+            type: string
+            enum: [high, medium, low]
+        - name: project_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [created_at, updated_at, due_date, priority, text]
+            default: created_at
+        - name: sort_dir
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: archived
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: List of todos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoList'
+        '401':
+          description: Unauthorized
+
+    post:
+      tags: [Todos]
+      summary: Create a new todo
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text:
+                  type: string
+                description:
+                  type: string
+                priority:
+                  type: string
+                  enum: [high, medium, low]
+                  default: medium
+                due_date:
+                  type: string
+                  format: date
+                project_id:
+                  type: string
+                  format: uuid
+                recurring_pattern:
+                  type: string
+      responses:
+        '201':
+          description: Todo created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Todo'
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+
+  /todos/search:
+    get:
+      tags: [Todos]
+      summary: Search todos by text
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: priority
+          in: query
+          schema:
+            type: string
+            enum: [high, medium, low]
+        - name: project_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: completed
+          in: query
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoList'
+        '401':
+          description: Unauthorized
+
+  /todos/bulk-update:
+    post:
+      tags: [Todos]
+      summary: Bulk update multiple todos
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids, updates]
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                updates:
+                  type: object
+                  properties:
+                    completed:
+                      type: boolean
+                    priority:
+                      type: string
+                      enum: [high, medium, low]
+                    archive:
+                      type: boolean
+      responses:
+        '200':
+          description: Bulk update result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  updated:
+                    type: integer
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+
+  /todos/{id}:
+    get:
+      tags: [Todos]
+      summary: Get a specific todo
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Todo details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Todo'
+        '404':
+          description: Todo not found
+
+    put:
+      tags: [Todos]
+      summary: Update a todo
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                description:
+                  type: string
+                completed:
+                  type: boolean
+                priority:
+                  type: string
+                  enum: [high, medium, low]
+                due_date:
+                  type: string
+                  format: date
+                project_id:
+                  type: string
+                  format: uuid
+                recurring_pattern:
+                  type: string
+      responses:
+        '200':
+          description: Updated todo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Todo'
+        '404':
+          description: Todo not found
+
+    delete:
+      tags: [Todos]
+      summary: Delete a todo
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Todo deleted
+        '404':
+          description: Todo not found
+
+  /projects:
+    get:
+      tags: [Projects]
+      summary: List all projects
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Project'
+        '401':
+          description: Unauthorized
+
+    post:
+      tags: [Projects]
+      summary: Create a new project
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                color:
+                  type: string
+                  default: '#3B82F6'
+                icon:
+                  type: string
+      responses:
+        '201':
+          description: Project created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+
+  /projects/{id}:
+    put:
+      tags: [Projects]
+      summary: Update a project
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                color:
+                  type: string
+                icon:
+                  type: string
+      responses:
+        '200':
+          description: Updated project
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '404':
+          description: Project not found
+
+    delete:
+      tags: [Projects]
+      summary: Delete a project
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Project deleted
+        '404':
+          description: Project not found
+
+  /projects/{id}/invite:
+    post:
+      tags: [Projects]
+      summary: Invite a collaborator to a project
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                permission_level:
+                  type: string
+                  enum: [view, edit, admin]
+                  default: view
+      responses:
+        '200':
+          description: Collaborator added
+        '400':
+          description: Validation error
+        '404':
+          description: Project or user not found
+
+  /user/profile:
+    get:
+      tags: [User]
+      summary: Get current user profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+
+    put:
+      tags: [User]
+      summary: Update user profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                avatar_url:
+                  type: string
+                current_password:
+                  type: string
+                new_password:
+                  type: string
+                  minLength: 8
+      responses:
+        '200':
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized or wrong password
+
+  /user/settings:
+    get:
+      tags: [User]
+      summary: Get user settings
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettings'
+        '401':
+          description: Unauthorized
+
+    put:
+      tags: [User]
+      summary: Update user settings
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mfa_enabled:
+                  type: boolean
+      responses:
+        '200':
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettings'
+        '401':
+          description: Unauthorized
+
+  /health:
+    get:
+      tags: [System]
+      summary: Health check
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
