@@ -1,2 +1,4 @@
 .idea/
 .vite
+api/node_modules/
+data/
